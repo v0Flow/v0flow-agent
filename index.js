@@ -36,39 +36,4 @@ app.post("/deploy", upload.single("zip"), async (req, res) => {
   const zipPath = req.file.path
   const zip = new AdmZip(zipPath)
   const tmpDir = path.join("temp", Date.now().toString())
-  await fs.mkdir(tmpDir, { recursive: true })
-  zip.extractAllTo(tmpDir, true)
-
-  const repoName = `v0flow-auto-${Date.now()}`
-  const owner = process.env.GITHUB_OWNER
-
-  // Create GitHub Repo
-  const repo = await octokit.repos.createForAuthenticatedUser({
-    name: repoName,
-    private: true,
-  })
-
-  // Init Git & Push
-  exec(
-    `cd ${tmpDir} && git init && git remote add origin https://$${process.env.GITHUB_PAT}@github.com/${owner}/${repoName}.git && git add . && git commit -m "init" && git push origin master`,
-    async (err) => {
-      if (err) return res.status(500).send("Git push failed")
-
-      // Deploy to Vercel
-      try {
-        const deployOutput = await deployToVercel(tmpDir, repoName)
-        res.send({ message: "Deployed", output: deployOutput })
-      } catch (e) {
-        res.status(500).send(`Vercel deploy error: ${e}`)
-      }
-    }
-  )
-})
-
-app.get("/health", (req, res) => {
-  res.send("v0Flow Agent running ✅")
-})
-
-app.listen(PORT, () => {
-  console.log(`✅ Agent listening on port ${PORT}`)
-})
+  await fs.mkdir(tmpDir, {
