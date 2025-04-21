@@ -15,7 +15,8 @@
     "form-data": "^4.0.0",
     "fs-extra": "^11.2.0",
     "jsdom": "^24.0.0",
-    "openai": "^4.28.4"
+    "openai": "^4.28.4",
+   "@octokit/rest": "^20.0.1"
   },
   "engines": {
     "node": ">=18.0.0"
