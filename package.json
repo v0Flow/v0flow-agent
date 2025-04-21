@@ -1,15 +1,16 @@
 {
   "name": "v0flow-agent",
   "version": "1.0.0",
-  "description": "Agent to receive v0 ZIP uploads, unzip, and prepare for deployment",
-  "main": "index.js",
+  "description": "Agent for deploying v0.dev zips to live apps",
   "type": "module",
+  "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
     "adm-zip": "^0.5.10",
     "express": "^4.18.2",
-    "multer": "1.4.5-lts.1"
+    "multer": "1.4.5-lts.1",
+    "@octokit/rest": "^20.0.0"
   }
 }
