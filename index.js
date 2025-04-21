@@ -1,55 +1,39 @@
-import express from 'express';
-import multer from 'multer';
-import AdmZip from 'adm-zip';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import express from "express";
+import multer from "multer";
+import AdmZip from "adm-zip";
+import fs from "fs";
+import path from "path";
+import { Octokit } from "@octokit/rest";
 
 const app = express();
 const port = process.env.PORT || 8080;
+const upload = multer({ dest: "uploads/" });
 
-// __dirname shim for ES Modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+app.use(express.json());
 
-// Storage setup for multer
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadPath = path.join(__dirname, 'uploads');
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath);
-    }
-    cb(null, uploadPath);
-  },
-  filename: function (req, file, cb) {
-    cb(null, file.originalname);
-  }
-});
-const upload = multer({ storage: storage });
-
-// Health check endpoint
-app.get('/', (req, res) => {
-  res.send('✅ v0Flow agent is running and healthy.');
+// Health check route
+app.get("/", (req, res) => {
+  res.status(200).json({ message: "v0Flow Agent is running." });
 });
 
-// Upload and unzip endpoint
-app.post('/upload', upload.single('zip'), (req, res) => {
-  try {
-    const filePath = req.file.path;
-    const unzipPath = path.join(__dirname, 'unzipped');
+app.get("/health", (req, res) => {
+  res.send("Healthy");
+});
 
-    if (!fs.existsSync(unzipPath)) {
-      fs.mkdirSync(unzipPath);
-    }
+// Upload and process v0 zip
+app.post("/upload", upload.single("file"), async (req, res) => {
+  const file = req.file;
+  if (!file) return res.status(400).send("No file uploaded");
 
-    const zip = new AdmZip(filePath);
-    zip.extractAllTo(unzipPath, true);
+  const zip = new AdmZip(file.path);
+  const zipEntries = zip.getEntries();
 
-    res.status(200).send('✅ File uploaded and unzipped successfully.');
-  } catch (error) {
-    console.error('❌ Error unzipping file:', error);
-    res.status(500).send('❌ Error processing file.');
-  }
+  const outputDir = `unzipped/${Date.now()}`;
+  fs.mkdirSync(outputDir, { recursive: true });
+  zip.extractAllTo(outputDir, true);
+
+  // You would then parse files & update GitHub
+  res.send({ status: "success", extractedTo: outputDir });
 });
 
 app.listen(port, () => {
