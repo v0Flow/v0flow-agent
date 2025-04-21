@@ -1,41 +1,54 @@
 import express from 'express';
 import multer from 'multer';
 import AdmZip from 'adm-zip';
-import dotenv from 'dotenv';
-import fetch from 'node-fetch';
-import { Octokit } from '@octokit/rest';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-dotenv.config();
 const app = express();
 const port = process.env.PORT || 8080;
 
+// __dirname shim for ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Ensure uploads and unzip dirs exist
-const uploadsDir = path.join(__dirname, 'uploads');
-const unzipDir = path.join(__dirname, 'unzipped');
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
-if (!fs.existsSync(unzipDir)) fs.mkdirSync(unzipDir);
+// Storage setup for multer
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadPath = path.join(__dirname, 'uploads');
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath);
+    }
+    cb(null, uploadPath);
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.originalname);
+  }
+});
+const upload = multer({ storage: storage });
 
-const upload = multer({ dest: uploadsDir });
-
+// Health check endpoint
 app.get('/', (req, res) => {
-  res.send('✅ v0Flow Agent is running');
+  res.send('✅ v0Flow agent is running and healthy.');
 });
 
-app.post('/upload', upload.single('zipFile'), (req, res) => {
+// Upload and unzip endpoint
+app.post('/upload', upload.single('zip'), (req, res) => {
   try {
-    const zipPath = req.file.path;
-    const zip = new AdmZip(zipPath);
-    zip.extractAllTo(unzipDir, true);
-    res.send('✅ ZIP extracted successfully');
+    const filePath = req.file.path;
+    const unzipPath = path.join(__dirname, 'unzipped');
+
+    if (!fs.existsSync(unzipPath)) {
+      fs.mkdirSync(unzipPath);
+    }
+
+    const zip = new AdmZip(filePath);
+    zip.extractAllTo(unzipPath, true);
+
+    res.status(200).send('✅ File uploaded and unzipped successfully.');
   } catch (error) {
-    console.error('❌ ZIP extraction error:', error);
-    res.status(500).send('❌ Failed to extract ZIP');
+    console.error('❌ Error unzipping file:', error);
+    res.status(500).send('❌ Error processing file.');
   }
 });
 
