@@ -39,3 +39,10 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 app.listen(port, () => {
   console.log(`✅ Agent listening on port ${port}`);
 });
+
+
+// Keep-alive heartbeat to prevent idle container shutdown
+setInterval(() => {
+  console.log("💓 Agent heartbeat...");
+}, 60 * 1000); // every 60 seconds
+
