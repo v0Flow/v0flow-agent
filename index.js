@@ -1,28 +1,43 @@
-import express from "express";
-import fetch from "node-fetch";
+import express from 'express'
+import multer from 'multer'
+import AdmZip from 'adm-zip'
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
 
-const app = express();
-const PORT = process.env.PORT || 8080;
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
-// Health check route
-app.get("/health", (req, res) => {
-  res.status(200).send("💓 Agent is alive");
-});
+const app = express()
+const port = process.env.PORT || 8080
+const upload = multer({ dest: 'uploads/' })
 
-// Start the server
-app.listen(PORT, () => {
-  console.log(`✅ Agent listening on port ${PORT}`);
-});
+// Health check endpoint
+app.get('/health', (_req, res) => {
+  res.send('✅ v0Flow Agent is live!')
+})
 
-// Self-ping every 30 seconds to keep alive
-setInterval(async () => {
+// Self-ping to keep alive (Render handles this but good for redundancy/logging)
+setInterval(() => {
+  console.log('💓 Agent heartbeat...')
+}, 60000)
+
+// File upload endpoint
+app.post('/upload', upload.single('zipFile'), async (req, res) => {
   try {
-    console.log("🔄 Self-ping: Still here 👋");
-    await fetch(`http://localhost:${PORT}/health`);
-  } catch (err) {
-    console.error("❌ Self-ping failed:", err);
-  }
-}, 30000);
+    const filePath = req.file.path
+    const zip = new AdmZip(filePath)
+    const extractPath = path.join(__dirname, 'extracted')
+    zip.extractAllTo(extractPath, true)
+    console.log(`✅ Extracted ZIP contents to: ${extractPath}`)
 
-// Prevent exit
-setInterval(() => {}, 1 << 30);
+    res.status(200).send('✅ ZIP file uploaded and extracted.')
+  } catch (error) {
+    console.error('❌ Error processing ZIP:', error)
+    res.status(500).send('❌ Failed to process ZIP file.')
+  }
+})
+
+app.listen(port, () => {
+  console.log(`✅ Agent listening on port ${port}`)
+})
